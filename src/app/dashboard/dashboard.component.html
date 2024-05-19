@@ -1,0 +1,86 @@
+<div>
+  <div class="search-container">
+    <div class="banner">
+      <h2>Recording Archival Search</h2>
+    </div>
+
+    <div class="form-inline">
+      <div class="form-group">
+        <label for="category" class="label-margin">Category</label>
+        <select
+          id="category"
+          [(ngModel)]="selectedCategory"
+          class="input-margin"
+        >
+          <option value="Search By Name and Date Range">
+            Search By Name and Date Range
+          </option>
+          <option value="category2">Category 2</option>
+          <option value="category3">Category 3</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <input
+          style="width: 15rem"
+          type="text"
+          id="search"
+          [(ngModel)]="searchQuery"
+          placeholder="Enter search term"
+          class="input-margin"
+        />
+      </div>
+      <div class="form-group">
+        <label for="fromDate" class="label-margin">From</label>
+        <input type="date" id="fromDate" [(ngModel)]="fromDate" />
+      </div>
+
+      <div class="form-group">
+        <label for="toDate" class="label-margin">To</label>
+        <input type="date" id="toDate" [(ngModel)]="toDate" />
+      </div>
+
+      <button (click)="onSearch()" class="label-margin">Search</button>
+      <button (click)="onSearch()" class="label-margin">Clear</button>
+    </div>
+  </div>
+  <div>
+    <div class="banner" *ngIf="searchResults && searchResults.length > 0">
+      <h2>Search Results</h2>
+    </div>
+    <table
+      *ngIf="searchResults && searchResults.length > 0"
+      class="search-results"
+    >
+      <thead>
+        <tr>
+          <th>Agent Name</th>
+          <th>Account Name</th>
+          <th>Policy Number</th>
+          <th>Recording Date</th>
+          <th>Call Direction</th>
+          <th>Account Number</th>
+          <th>Policy Type</th>
+          <th>Ani</th>
+          <th>Contact Duration</th>
+          <th>Dnis</th>
+          <th>Audio File Path</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let result of searchResults">
+          <td>{{ result.column1 }}</td>
+          <td>{{ result.column2 }}</td>
+          <td>{{ result.column3 }}</td>
+          <td>{{ result.column4 }}</td>
+          <td>{{ result.column1 }}</td>
+          <td>{{ result.column2 }}</td>
+          <td>{{ result.column3 }}</td>
+          <td>{{ result.column4 }}</td>
+          <td>{{ result.column1 }}</td>
+          <td>{{ result.column2 }}</td>
+          <td>{{ result.column3 }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
