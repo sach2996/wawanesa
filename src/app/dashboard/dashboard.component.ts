@@ -36,12 +36,16 @@ export class DashboardComponent implements OnInit {
       return; // Do nothing if search is not valid
     }
     this.errorMessge = '';
-    const apiUrlForRecords = 'https://your-api-url/get-records';
-    const params = {
+    const apiUrlForRecords = 'abc.com/dev/get-records';
+    let params = {
       agentName: this.searchQuery,
       startDate: this.fromDate,
       endDate: this.toDate,
+      Authorization:
+        'eyJraWQiOiJUYlRCS2MzUTVlaU9VSDdTS2k5RHVXXC9tckVVUjRDMVplc2ZLY0NUZ09SND0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJmY2FkMDU0OC1jMDYxLTcwMDUtZjFlMy0yMzZhMTQ3MzUzYTUiLCJjb2duaXRvOmdyb3VwcyI6WyJjYS1jZW50cmFsLTFfbVdHc1BOOGdpX2F6dXJlIl0sImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC5jYS1jZW50cmFsLTEuYW1hem9uYXdzLmNvbVwvY2EtY2VudHJhbC0xX21XR3NQTjhnaSIsInZlcnNpb24iOjIsImNsaWVudF9pZCI6IjQzdWw5OG41djlhNm9pdGE3ZjQ3aGk5a3JnIiwib3JpZ2luX2p0aSI6IjU2YTgyZmQ5LTUwZDctNDA0Yy04YzFjLWJjZmQ1ZDA3NDhmZCIsInRva2VuX3VzZSI6ImFjY2VzcyIsInN',
     };
+
+    // params .set('Authorization', 'eyJraWQiOiJUYlRCS2MzUTVlaU9VSDdTS2k5RHVXXC9tckVVUjRDMVplc2ZLY0NUZ09SND0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJmY2FkMDU0OC1jMDYxLTcwMDUtZjFlMy0yMzZhMTQ3MzUzYTUiLCJjb2duaXRvOmdyb3VwcyI6WyJjYS1jZW50cmFsLTFfbVdHc1BOOGdpX2F6dXJlIl0sImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC5jYS1jZW50cmFsLTEuYW1hem9uYXdzLmNvbVwvY2EtY2VudHJhbC0xX21XR3NQTjhnaSIsInZlcnNpb24iOjIsImNsaWVudF9pZCI6IjQzdWw5OG41djlhNm9pdGE3ZjQ3aGk5a3JnIiwib3JpZ2luX2p0aSI6IjU2YTgyZmQ5LTUwZDctNDA0Yy04YzFjLWJjZmQ1ZDA3NDhmZCIsInRva2VuX3VzZSI6ImFjY2VzcyIsInN');
 
     this.http.get<any>(apiUrlForRecords, { params }).subscribe(
       (response) => {
@@ -124,7 +128,7 @@ export class DashboardComponent implements OnInit {
       }
     );
 
-    //comment below line as this is mock data
+    // comment below line as this is mock data
     this.searchResults = [
       {
         recording_id: 1,
@@ -214,36 +218,34 @@ export class DashboardComponent implements OnInit {
     }
 
     // Construct the full URL with the provided endpoint and audio file path parameter
-    const apiUrl = `https://testurl.com/dev/get-recording-link?objectPath=${audioFilePath}`;
-
-    //uncomment this line if you need to pass token manually and add paras variable on line 223 along with responseType
-    // let params = new HttpParams().set('token', 'Place your token here');
+    // const apiUrl = `https://0h7pvgmu86.execute-api.ca-central-1.amazonaws.com/dev/get-recording-link?objectPath=${audioFilePath}`;
+    const apiUrl =
+      'test.com/dev/get-recording-link?objectPath=${audioFilePath}';
 
     // Make a GET request to the constructed URL to download the audio file
-    this.http.get(apiUrl, { responseType: 'blob' }).subscribe(
-      (response: Blob) => {
-        // Create a blob object from the response data
-        const blob = new Blob([response], { type: 'audio/wav' });
+    this.http.get(apiUrl).subscribe((response: any) => {
+      fetch(response.url)
+        .then((response) => response.blob())
+        .then((blob) => {
+          const url = window.URL.createObjectURL(blob);
+          // Create a temporary link element
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'audio.wav';
+          a.style.display = 'none';
+          // Append the link element to the document body
+          document.body.appendChild(a);
 
-        // Create a temporary URL for the blob object
-        const url = window.URL.createObjectURL(blob);
+          // Trigger the click event programmatically
+          a.click();
 
-        // Create a temporary link element
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'audio.wav'; // Set the default file name as 'audio.wav'
-        document.body.appendChild(a);
-
-        // Click the link to trigger the download
-        a.click();
-
-        // Clean up: remove the temporary link and revoke the URL
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      },
-      (error) => {
-        console.error('Error downloading audio:', error);
-      }
-    );
+          // Clean up: remove the link element and revoke the URL
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        })
+        .catch((error) => {
+          console.error('Error downloading audio:', error);
+        });
+    });
   }
 }
