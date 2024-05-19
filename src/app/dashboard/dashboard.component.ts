@@ -216,6 +216,9 @@ export class DashboardComponent implements OnInit {
     // Construct the full URL with the provided endpoint and audio file path parameter
     const apiUrl = `https://testurl.com/dev/get-recording-link?objectPath=${audioFilePath}`;
 
+    //uncomment this line if you need to pass token manually and add paras variable on line 223 along with responseType
+    // let params = new HttpParams().set('token', 'Place your token here');
+
     // Make a GET request to the constructed URL to download the audio file
     this.http.get(apiUrl, { responseType: 'blob' }).subscribe(
       (response: Blob) => {
