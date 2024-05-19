@@ -78,3 +78,12 @@ button:hover {
     background-color: #f0f0f0;
     /* Background color for table header */
 }
+
+.error-message {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: #ffcccc;
+    padding: 5px 10px;
+    border-radius: 5px;
+}

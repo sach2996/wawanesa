@@ -26,21 +26,36 @@
           id="search"
           [(ngModel)]="searchQuery"
           placeholder="Enter search term"
+          (input)="checkSearchValidity()"
           class="input-margin"
         />
       </div>
       <div class="form-group">
         <label for="fromDate" class="label-margin">From</label>
-        <input type="date" id="fromDate" [(ngModel)]="fromDate" />
+        <input
+          type="date"
+          id="fromDate"
+          [(ngModel)]="fromDate"
+          (input)="checkSearchValidity()"
+        />
       </div>
 
       <div class="form-group">
         <label for="toDate" class="label-margin">To</label>
-        <input type="date" id="toDate" [(ngModel)]="toDate" />
+        <input
+          type="date"
+          id="toDate"
+          [(ngModel)]="toDate"
+          (input)="checkSearchValidity()"
+        />
       </div>
 
       <button (click)="onSearch()" class="label-margin">Search</button>
-      <button (click)="onSearch()" class="label-margin">Clear</button>
+      <button (click)="clearSearch()" class="label-margin">Clear</button>
+
+      <div *ngIf="!isSearchValid" class="error-message">
+        {{ errorMessge }}
+      </div>
     </div>
   </div>
   <div>
@@ -68,17 +83,21 @@
       </thead>
       <tbody>
         <tr *ngFor="let result of searchResults">
-          <td>{{ result.column1 }}</td>
-          <td>{{ result.column2 }}</td>
-          <td>{{ result.column3 }}</td>
-          <td>{{ result.column4 }}</td>
-          <td>{{ result.column1 }}</td>
-          <td>{{ result.column2 }}</td>
-          <td>{{ result.column3 }}</td>
-          <td>{{ result.column4 }}</td>
-          <td>{{ result.column1 }}</td>
-          <td>{{ result.column2 }}</td>
-          <td>{{ result.column3 }}</td>
+          <td>{{ result.agent_name }}</td>
+          <td>{{ result.account_name }}</td>
+          <td>{{ result.policy_number }}</td>
+          <td>{{ result.recording_date }}</td>
+          <td>{{ result.call_direction }}</td>
+          <td>{{ result.account_number }}</td>
+          <td>{{ result.policy_type }}</td>
+          <td>{{ result.ani }}</td>
+          <td>{{ result.contact_duration }}</td>
+          <td>{{ result.dnis }}</td>
+          <td>
+            <a href="#" (click)="downloadAudio(result.audio_file_path)">{{
+              result.audio_file_path
+            }}</a>
+          </td>
         </tr>
       </tbody>
     </table>
