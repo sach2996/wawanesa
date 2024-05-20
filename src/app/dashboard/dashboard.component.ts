@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { AuthService } from '../auth.service';
 @Component({
   selector: 'app-dashboard',
   // standalone: true,
@@ -16,10 +17,13 @@ export class DashboardComponent implements OnInit {
   selectedCategory: string | undefined;
   searchResults: any[] = [];
   isSearchValid: boolean = false;
-  errorMessge: string = '';
+  errorMessage: string = '';
 
-  constructor(private http: HttpClient) {}
+  constructor(private authService: AuthService, private http: HttpClient) {}
   ngOnInit(): void {
+    if (!this.authService.isLoggedIn()) {
+      this.authService.redirectToAuth();
+    }
     this.selectedCategory = 'Search By Name and Date Range';
   }
 
@@ -32,95 +36,23 @@ export class DashboardComponent implements OnInit {
   }
   onSearch() {
     if (!this.isSearchValid) {
-      this.errorMessge = 'Please fill in all search fields.';
+      this.errorMessage = 'Please fill in all search fields.';
       return; // Do nothing if search is not valid
     }
-    this.errorMessge = '';
+    this.errorMessage = '';
     const apiUrlForRecords = 'abc.com/dev/get-records';
     let params = {
       agentName: this.searchQuery,
       startDate: this.fromDate,
       endDate: this.toDate,
-      Authorization:
-        'eyJraWQiOiJUYlRCS2MzUTVlaU9VSDdTS2k5RHVXXC9tckVVUjRDMVplc2ZLY0NUZ09SND0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJmY2FkMDU0OC1jMDYxLTcwMDUtZjFlMy0yMzZhMTQ3MzUzYTUiLCJjb2duaXRvOmdyb3VwcyI6WyJjYS1jZW50cmFsLTFfbVdHc1BOOGdpX2F6dXJlIl0sImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC5jYS1jZW50cmFsLTEuYW1hem9uYXdzLmNvbVwvY2EtY2VudHJhbC0xX21XR3NQTjhnaSIsInZlcnNpb24iOjIsImNsaWVudF9pZCI6IjQzdWw5OG41djlhNm9pdGE3ZjQ3aGk5a3JnIiwib3JpZ2luX2p0aSI6IjU2YTgyZmQ5LTUwZDctNDA0Yy04YzFjLWJjZmQ1ZDA3NDhmZCIsInRva2VuX3VzZSI6ImFjY2VzcyIsInN',
     };
 
-    // params .set('Authorization', 'eyJraWQiOiJUYlRCS2MzUTVlaU9VSDdTS2k5RHVXXC9tckVVUjRDMVplc2ZLY0NUZ09SND0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJmY2FkMDU0OC1jMDYxLTcwMDUtZjFlMy0yMzZhMTQ3MzUzYTUiLCJjb2duaXRvOmdyb3VwcyI6WyJjYS1jZW50cmFsLTFfbVdHc1BOOGdpX2F6dXJlIl0sImlzcyI6Imh0dHBzOlwvXC9jb2duaXRvLWlkcC5jYS1jZW50cmFsLTEuYW1hem9uYXdzLmNvbVwvY2EtY2VudHJhbC0xX21XR3NQTjhnaSIsInZlcnNpb24iOjIsImNsaWVudF9pZCI6IjQzdWw5OG41djlhNm9pdGE3ZjQ3aGk5a3JnIiwib3JpZ2luX2p0aSI6IjU2YTgyZmQ5LTUwZDctNDA0Yy04YzFjLWJjZmQ1ZDA3NDhmZCIsInRva2VuX3VzZSI6ImFjY2VzcyIsInN');
+    const headers = new HttpHeaders({
+      Authorization: `${this.authService.getToken()!}`,
+    });
 
-    this.http.get<any>(apiUrlForRecords, { params }).subscribe(
+    this.http.get<any>(apiUrlForRecords, { headers, params }).subscribe(
       (response) => {
-        response = {
-          data: [
-            {
-              recording_id: 1,
-              agent_time: 'John Doe',
-              start_time: '2021-09-03T12:00:00:208-05:00',
-              end_time: '2021-09-03T12:05:00:208-05:00',
-              accoutn_number: '',
-              call_direction: 'Outbound',
-              ani: '123345',
-              dnis: '12345',
-              contact_duration: '1422',
-              policy_number: 12344,
-              account_name: '',
-              policy_type: '',
-              audio: '122325452.wav',
-              audio_file_path: 'archive/asda/asdas.wav',
-              recording_date: '2021-09-03T12:05:00:208-05:00',
-            },
-            {
-              recording_id: 2,
-              agent_time: 'John Doe',
-              start_time: '2021-09-03T12:00:00:208-05:00',
-              end_time: '2021-09-03T12:05:00:208-05:00',
-              accoutn_number: '',
-              call_direction: 'Outbound',
-              ani: '123345',
-              dnis: '12345',
-              contact_duration: '1422',
-              policy_number: 12344,
-              account_name: '',
-              policy_type: '',
-              audio: '122325452.wav',
-              audio_file_path: 'archive/asda/asdas.wav',
-              recording_date: '2021-09-03T12:05:00:208-05:00',
-            },
-            {
-              recording_id: 3,
-              agent_time: 'John Doe',
-              start_time: '2021-09-03T12:00:00:208-05:00',
-              end_time: '2021-09-03T12:05:00:208-05:00',
-              accoutn_number: '',
-              call_direction: 'Outbound',
-              ani: '123345',
-              dnis: '12345',
-              contact_duration: '1422',
-              policy_number: 12344,
-              account_name: '',
-              policy_type: '',
-              audio: '122325452.wav',
-              audio_file_path: 'archive/asda/asdas.wav',
-              recording_date: '2021-09-03T12:05:00:208-05:00',
-            },
-            {
-              recording_id: 4,
-              agent_time: 'John Doe',
-              start_time: '2021-09-03T12:00:00:208-05:00',
-              end_time: '2021-09-03T12:05:00:208-05:00',
-              accoutn_number: '',
-              call_direction: 'Outbound',
-              ani: '123345',
-              dnis: '12345',
-              contact_duration: '1422',
-              policy_number: 12344,
-              account_name: '',
-              policy_type: '',
-              audio: '122325452.wav',
-              audio_file_path: 'archive/asda/asdas.wav',
-              recording_date: '2021-09-03T12:05:00:208-05:00',
-            },
-          ],
-        };
         this.searchResults = response.data;
       },
       (error: any) => {
@@ -208,10 +140,10 @@ export class DashboardComponent implements OnInit {
     this.fromDate = '';
     this.toDate = '';
     this.isSearchValid = false;
-    this.errorMessge = '';
+    this.errorMessage = '';
   }
 
-  downloadAudio(audioFilePath: string | undefined) {
+  downloadAudio(audioFilePath: string | undefined, fileName: string) {
     if (!audioFilePath) {
       console.error('Audio file path is undefined.');
       return;
@@ -222,8 +154,11 @@ export class DashboardComponent implements OnInit {
     const apiUrl =
       'test.com/dev/get-recording-link?objectPath=${audioFilePath}';
 
+    const headers = new HttpHeaders({
+      Authorization: `${this.authService.getToken()!}`,
+    });
     // Make a GET request to the constructed URL to download the audio file
-    this.http.get(apiUrl).subscribe((response: any) => {
+    this.http.get(apiUrl, { headers }).subscribe((response: any) => {
       fetch(response.url)
         .then((response) => response.blob())
         .then((blob) => {
@@ -231,9 +166,8 @@ export class DashboardComponent implements OnInit {
           // Create a temporary link element
           const a = document.createElement('a');
           a.href = url;
-          a.download = 'audio.wav';
+          a.download = fileName;
           a.style.display = 'none';
-          // Append the link element to the document body
           document.body.appendChild(a);
 
           // Trigger the click event programmatically
@@ -247,5 +181,9 @@ export class DashboardComponent implements OnInit {
           console.error('Error downloading audio:', error);
         });
     });
+  }
+
+  onLogout(): void {
+    this.authService.logout();
   }
 }
