@@ -149,8 +149,6 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    // Construct the full URL with the provided endpoint and audio file path parameter
-    // const apiUrl = `https://0h7pvgmu86.execute-api.ca-central-1.amazonaws.com/dev/get-recording-link?objectPath=${audioFilePath}`;
     const apiUrl =
       'test.com/dev/get-recording-link?objectPath=${audioFilePath}';
 
