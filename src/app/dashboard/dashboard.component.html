@@ -1,71 +1,63 @@
-<div>
-  <div class="search-container">
-    <div class="banner">
-      <h2>Recording Archival Search</h2>
+<div class="search-container">
+  <div class="banner">
+    <h2>Recording Archival Search</h2>
+    <div button-group></div>
+    <button (click)="onLogout()">Logout</button>
+  </div>
+  <div class="search-form">
+    <div class="form-group">
+      <label for="category" class="label-margin">Category</label>
+      <select id="category" [(ngModel)]="selectedCategory" class="input-margin">
+        <option value="Search By Name and Date Range">
+          Search By Name and Date Range
+        </option>
+        <option value="category2">Category 2</option>
+        <option value="category3">Category 3</option>
+      </select>
     </div>
-
-    <div class="form-inline">
-      <div class="form-group">
-        <label for="category" class="label-margin">Category</label>
-        <select
-          id="category"
-          [(ngModel)]="selectedCategory"
-          class="input-margin"
-        >
-          <option value="Search By Name and Date Range">
-            Search By Name and Date Range
-          </option>
-          <option value="category2">Category 2</option>
-          <option value="category3">Category 3</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <input
-          style="width: 15rem"
-          type="text"
-          id="search"
-          [(ngModel)]="searchQuery"
-          placeholder="Enter search term"
-          (input)="checkSearchValidity()"
-          class="input-margin"
-        />
-      </div>
-      <div class="form-group">
-        <label for="fromDate" class="label-margin">From</label>
-        <input
-          type="date"
-          id="fromDate"
-          [(ngModel)]="fromDate"
-          (input)="checkSearchValidity()"
-        />
-      </div>
-
-      <div class="form-group">
-        <label for="toDate" class="label-margin">To</label>
-        <input
-          type="date"
-          id="toDate"
-          [(ngModel)]="toDate"
-          (input)="checkSearchValidity()"
-        />
-      </div>
-
-      <button (click)="onSearch()" class="label-margin">Search</button>
-      <button (click)="clearSearch()" class="label-margin">Clear</button>
-
-      <div *ngIf="!isSearchValid" class="error-message">
-        {{ errorMessge }}
-      </div>
+    <div class="form-group">
+      <label for="search" class="label-margin">Search Term</label>
+      <input
+        type="text"
+        id="search"
+        [(ngModel)]="searchQuery"
+        placeholder="Enter search term"
+        (input)="checkSearchValidity()"
+        class="input-margin"
+      />
+    </div>
+    <div class="form-group">
+      <label for="fromDate" class="label-margin">From Date</label>
+      <input
+        type="date"
+        id="fromDate"
+        [(ngModel)]="fromDate"
+        (input)="checkSearchValidity()"
+      />
+    </div>
+    <div class="form-group">
+      <label for="toDate" class="label-margin">To Date</label>
+      <input
+        type="date"
+        id="toDate"
+        [(ngModel)]="toDate"
+        (input)="checkSearchValidity()"
+      />
+    </div>
+    <div class="button-group">
+      <button (click)="onSearch()" class="search-button">Search</button>
+      <button (click)="clearSearch()" class="search-button">Clear</button>
     </div>
   </div>
-  <div>
-    <div class="banner" *ngIf="searchResults && searchResults.length > 0">
+  <div *ngIf="!isSearchValid" class="error-message">
+    {{ errorMessage }}
+  </div>
+
+  <div *ngIf="searchResults && searchResults.length > 0">
+    <div class="banner">
       <h2>Search Results</h2>
     </div>
-    <table
-      *ngIf="searchResults && searchResults.length > 0"
-      class="search-results"
-    >
+    <table class="search-results">
       <thead>
         <tr>
           <th>Agent Name</th>
@@ -94,9 +86,11 @@
           <td>{{ result.contact_duration }}</td>
           <td>{{ result.dnis }}</td>
           <td>
-            <a href="#" (click)="downloadAudio(result.audio_file_path)">{{
-              result.audio_file_path
-            }}</a>
+            <a
+              href="#"
+              (click)="downloadAudio(result.audio_file_path, result.audio)"
+              >{{ result.audio_file_path }}</a
+            >
           </td>
         </tr>
       </tbody>
