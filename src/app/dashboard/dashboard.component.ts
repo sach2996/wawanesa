@@ -1,12 +1,9 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { AuthService } from '../auth.service';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import moment from 'moment';
+import * as Cookies from 'js-cookie';
 @Component({
   selector: 'app-dashboard',
-  // standalone: true,
-  // imports: [CommonModule, FormsModule],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
@@ -18,13 +15,25 @@ export class DashboardComponent implements OnInit {
   searchResults: any[] = [];
   isSearchValid: boolean = false;
   errorMessage: string = '';
+  accessToken: any;
+  idToken: any;
+  baseUrl = 'place your base url here';
 
-  constructor(private authService: AuthService, private http: HttpClient) {}
+  constructor(private http: HttpClient) {}
   ngOnInit(): void {
-    if (!this.authService.isLoggedIn()) {
-      this.authService.redirectToAuth();
-    }
     this.selectedCategory = 'Search By Name and Date Range';
+    this.accessToken = this.getToken('accessToken');
+
+    if (!this.accessToken && this.checkRefreshToken()) {
+      this.refreshToken()
+        .then((newAccessToken) => {
+          this.accessToken = newAccessToken;
+        })
+        .catch((error) => {
+          console.error('Error refreshing token:', error);
+          // Handle refresh token error (e.g., redirect to login)
+        });
+    }
   }
 
   // Method to check if search is valid
@@ -40,7 +49,7 @@ export class DashboardComponent implements OnInit {
       return; // Do nothing if search is not valid
     }
     this.errorMessage = '';
-    const apiUrlForRecords = 'abc.com/dev/get-records';
+    const apiUrlForRecords = `${this.baseUrl}/get-records`;
     let params = {
       agentName: this.searchQuery,
       startDate: this.fromDate,
@@ -48,7 +57,7 @@ export class DashboardComponent implements OnInit {
     };
 
     const headers = new HttpHeaders({
-      Authorization: `${this.authService.getToken()!}`,
+      Authorization: this.accessToken ?? 0,
     });
 
     this.http.get<any>(apiUrlForRecords, { headers, params }).subscribe(
@@ -59,78 +68,6 @@ export class DashboardComponent implements OnInit {
         console.error('Error fetching search results:', error);
       }
     );
-
-    // comment below line as this is mock data
-    this.searchResults = [
-      {
-        recording_id: 1,
-        agent_name: 'John Doe',
-        start_time: '2021-09-03T12:00:00:208-05:00',
-        end_time: '2021-09-03T12:05:00:208-05:00',
-        account_number: '',
-        call_direction: 'Outbound',
-        ani: '123345',
-        dnis: '12345',
-        contact_duration: '1422',
-        policy_number: 12344,
-        account_name: '',
-        policy_type: '',
-        audio: '122325452.wav',
-        audio_file_path: 'archive/asda/asdas.wav',
-        recording_date: '2021-09-03T12:05:00:208-05:00',
-      },
-      {
-        recording_id: 2,
-        agent_name: 'John Doe',
-        start_time: '2021-09-03T12:00:00:208-05:00',
-        end_time: '2021-09-03T12:05:00:208-05:00',
-        account_number: '',
-        call_direction: 'Outbound',
-        ani: '123345',
-        dnis: '12345',
-        contact_duration: '1422',
-        policy_number: 12344,
-        account_name: '',
-        policy_type: '',
-        audio: '122325452.wav',
-        audio_file_path: 'archive/asda/asdas.wav',
-        recording_date: '2021-09-03T12:05:00:208-05:00',
-      },
-      {
-        recording_id: 3,
-        agent_name: 'John Doe',
-        start_time: '2021-09-03T12:00:00:208-05:00',
-        end_time: '2021-09-03T12:05:00:208-05:00',
-        account_number: '',
-        call_direction: 'Outbound',
-        ani: '123345',
-        dnis: '12345',
-        contact_duration: '1422',
-        policy_number: 12344,
-        account_name: '',
-        policy_type: '',
-        audio: '122325452.wav',
-        audio_file_path: 'archive/asda/asdas.wav',
-        recording_date: '2021-09-03T12:05:00:208-05:00',
-      },
-      {
-        recording_id: 4,
-        agent_name: 'John Doe',
-        start_time: '2021-09-03T12:00:00:208-05:00',
-        end_time: '2021-09-03T12:05:00:208-05:00',
-        account_number: '',
-        call_direction: 'Outbound',
-        ani: '123345',
-        dnis: '12345',
-        contact_duration: '1422',
-        policy_number: 12344,
-        account_name: '',
-        policy_type: '',
-        audio: '122325452.wav',
-        audio_file_path: 'archive/asda/asdas.wav',
-        recording_date: '2021-09-03T12:05:00:208-05:00',
-      },
-    ];
   }
 
   // Method to clear search inputs
@@ -149,11 +86,10 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    const apiUrl =
-      'test.com/dev/get-recording-link?objectPath=${audioFilePath}';
-
+    // Construct the full URL with the provided endpoint and audio file path parameter
+    const apiUrl = `${this.baseUrl}/get-recording-link?objectPath=${audioFilePath}`;
     const headers = new HttpHeaders({
-      Authorization: `${this.authService.getToken()!}`,
+      Authorization: this.accessToken ?? 0,
     });
     // Make a GET request to the constructed URL to download the audio file
     this.http.get(apiUrl, { headers }).subscribe((response: any) => {
@@ -168,10 +104,7 @@ export class DashboardComponent implements OnInit {
           a.style.display = 'none';
           document.body.appendChild(a);
 
-          // Trigger the click event programmatically
           a.click();
-
-          // Clean up: remove the link element and revoke the URL
           document.body.removeChild(a);
           window.URL.revokeObjectURL(url);
         })
@@ -181,7 +114,88 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  onLogout(): void {
-    this.authService.logout();
+  parseJwt(token: string | undefined): any {
+    try {
+      const base64Url = token ?? ''.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/-/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      return JSON.parse(jsonPayload);
+    } catch (error) {
+      console.error('Invalid JWT token');
+      return null;
+    }
+  }
+
+  getToken(tokenName: string) {
+    return document.cookie
+      .split(/; */)
+      .find((cookieraw) => {
+        const name = cookieraw.split('=')[0];
+        if (
+          name.startsWith('CognitoIdentityServiceProvider.') &&
+          name.endsWith(`.${tokenName}`)
+        ) {
+          return true;
+        }
+        return false;
+      })
+      ?.split('=')[1];
+  }
+
+  checkRefreshToken(): boolean {
+    const refreshToken = Cookies.get('refreshToken');
+    return refreshToken !== undefined && refreshToken !== '';
+  }
+
+  async refreshToken(): Promise<string | undefined> {
+    const refreshToken = this.getToken('refreshToken');
+    this.idToken = this.getToken('idToken');
+    if (!refreshToken) {
+      return undefined; // No refresh token available
+    }
+
+    const bufferTime = 300; // 5 minutes in seconds
+    if (moment().unix() + bufferTime >= this.parseJwt(this.idToken).exp) {
+      try {
+        const response = await fetch(
+          `https://<mydomain>.auth.ca-central-1.amazoncognito.com/oauth2/token`,
+          {
+            method: 'POST',
+            headers: new Headers({
+              'content-type': 'application/x-www-form-urlencoded',
+            }),
+            body: Object.entries({
+              'grant-type': 'refresh_token',
+              client_id: 'place_your_client_id',
+              redirect_url: window.location.origin,
+              refresh_token: refreshToken,
+            })
+              .map(([k, v]) => `${k}=${v}`)
+              .join('&'),
+          }
+        );
+
+        if (!response.ok) {
+          console.error('Could not refresh token:', await response.json());
+          return undefined; // Indicate refresh failure
+        }
+
+        const data = await response.json();
+        console.log('Token refreshed successfully'); // Avoid logging tokens in production
+        this.accessToken = data.access_token;
+        this.idToken = data.id_token;
+        return this.accessToken; // Return the new access token
+      } catch (error) {
+        console.error('Error refreshing token:', error);
+        return undefined; // Indicate refresh failure
+      }
+    }
+
+    return this.accessToken;
   }
 }
