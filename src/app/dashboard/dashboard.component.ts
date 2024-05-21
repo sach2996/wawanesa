@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import moment from 'moment';
-import * as Cookies from 'js-cookie';
+
+import { environment } from '../../environments/environment';
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
@@ -17,25 +18,36 @@ export class DashboardComponent implements OnInit {
   errorMessage: string = '';
   accessToken: any;
   idToken: any;
-  baseUrl = 'place your base url here';
+  baseUrl = environment.baseUrl;
 
   constructor(private http: HttpClient) {}
   ngOnInit(): void {
     this.selectedCategory = 'Search By Name and Date Range';
     this.accessToken = this.getToken('accessToken');
-
-    if (!this.accessToken && this.checkRefreshToken()) {
+    this.idToken = this.getToken('idToken');
+    this.tryRefreshToken;
+  }
+  async tryRefreshToken() {
+    if (
+      (!this.accessToken && this.checkRefreshToken()) ||
+      this.checkIdToken()
+    ) {
       this.refreshToken()
         .then((newAccessToken) => {
           this.accessToken = newAccessToken;
         })
         .catch((error) => {
           console.error('Error refreshing token:', error);
-          // Handle refresh token error (e.g., redirect to login)
         });
     }
   }
-
+  checkIdToken() {
+    const bufferTime = 300; // 5 minutes in seconds
+    if (moment().unix() + bufferTime >= this.parseJwt(this.idToken).exp) {
+      return true;
+    }
+    return false;
+  }
   // Method to check if search is valid
   checkSearchValidity() {
     this.isSearchValid =
@@ -43,11 +55,12 @@ export class DashboardComponent implements OnInit {
       this.fromDate.trim() !== '' &&
       this.toDate.trim() !== '';
   }
-  onSearch() {
+  async onSearch() {
     if (!this.isSearchValid) {
       this.errorMessage = 'Please fill in all search fields.';
       return; // Do nothing if search is not valid
     }
+    await this.tryRefreshToken();
     this.errorMessage = '';
     const apiUrlForRecords = `${this.baseUrl}/get-records`;
     let params = {
@@ -80,7 +93,8 @@ export class DashboardComponent implements OnInit {
     this.errorMessage = '';
   }
 
-  downloadAudio(audioFilePath: string | undefined, fileName: string) {
+  async downloadAudio(audioFilePath: string | undefined, fileName: string) {
+    await this.tryRefreshToken();
     if (!audioFilePath) {
       console.error('Audio file path is undefined.');
       return;
@@ -115,15 +129,20 @@ export class DashboardComponent implements OnInit {
   }
 
   parseJwt(token: string | undefined): any {
+    if (!token) {
+      return null; // No token provided
+    }
+
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+
     try {
-      const base64Url = token ?? ''.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/-/g, '/');
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
       return JSON.parse(jsonPayload);
     } catch (error) {
       console.error('Invalid JWT token');
@@ -148,7 +167,7 @@ export class DashboardComponent implements OnInit {
   }
 
   checkRefreshToken(): boolean {
-    const refreshToken = Cookies.get('refreshToken');
+    const refreshToken = this.getToken('refreshToken');
     return refreshToken !== undefined && refreshToken !== '';
   }
 
@@ -158,44 +177,38 @@ export class DashboardComponent implements OnInit {
     if (!refreshToken) {
       return undefined; // No refresh token available
     }
-
-    const bufferTime = 300; // 5 minutes in seconds
-    if (moment().unix() + bufferTime >= this.parseJwt(this.idToken).exp) {
-      try {
-        const response = await fetch(
-          `https://<mydomain>.auth.ca-central-1.amazoncognito.com/oauth2/token`,
-          {
-            method: 'POST',
-            headers: new Headers({
-              'content-type': 'application/x-www-form-urlencoded',
-            }),
-            body: Object.entries({
-              'grant-type': 'refresh_token',
-              client_id: 'place_your_client_id',
-              redirect_url: window.location.origin,
-              refresh_token: refreshToken,
-            })
-              .map(([k, v]) => `${k}=${v}`)
-              .join('&'),
-          }
-        );
-
-        if (!response.ok) {
-          console.error('Could not refresh token:', await response.json());
-          return undefined; // Indicate refresh failure
+    try {
+      const response = await fetch(
+        `https://<mydomain>.auth.ca-central-1.amazoncognito.com/oauth2/token`,
+        {
+          method: 'POST',
+          headers: new Headers({
+            'content-type': 'application/x-www-form-urlencoded',
+          }),
+          body: Object.entries({
+            grant_type: 'refresh_token',
+            client_id: 'place_your_client_id',
+            redirect_uri: window.location.origin,
+            refresh_token: refreshToken,
+          })
+            .map(([k, v]) => `${k}=${v}`)
+            .join('&'),
         }
+      );
 
-        const data = await response.json();
-        console.log('Token refreshed successfully'); // Avoid logging tokens in production
-        this.accessToken = data.access_token;
-        this.idToken = data.id_token;
-        return this.accessToken; // Return the new access token
-      } catch (error) {
-        console.error('Error refreshing token:', error);
-        return undefined; // Indicate refresh failure
+      if (!response.ok) {
+        console.error('Could not refresh token:', await response.json());
+        return undefined;
       }
-    }
 
-    return this.accessToken;
+      const data = await response.json();
+      console.log('Token refreshed successfully');
+      this.accessToken = data.access_token;
+      this.idToken = data.id_token;
+      return this.accessToken;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      return undefined;
+    }
   }
 }
