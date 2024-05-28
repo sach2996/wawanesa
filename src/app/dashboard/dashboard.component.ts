@@ -33,16 +33,18 @@ export class DashboardComponent implements OnInit {
       (!this.accessToken && this.checkRefreshToken()) ||
       this.checkIdToken()
     ) {
-      this.refreshToken()
-        .then((newAccessToken) => {
-          this.accessToken = newAccessToken;
-        })
-        .catch((error) => {
-          console.error('Error refreshing token:', error);
-        });
+      try {
+        const newAccessToken = await this.refreshToken();
+        this.accessToken = newAccessToken;
+      } catch (error) {
+        console.error('Error refreshing token:', error);
+        this.errorMessage = 'An error occurred while refreshing your token.';
+      }
     }
   }
+
   checkIdToken() {
+    return true;
     const bufferTime = 300; // 5 minutes in seconds
     if (moment().unix() + bufferTime >= this.parseJwt(this.idToken).exp) {
       return true;
@@ -81,6 +83,22 @@ export class DashboardComponent implements OnInit {
         this.searchResults = response.data;
       },
       (error: any) => {
+        this.isLoading = false;
+        if (error.status) {
+          switch (error.status) {
+            case 401:
+              this.errorMessage =
+                'Unauthorized access. Please refresh your token.';
+              break;
+            case 404:
+              this.errorMessage = 'Data not found for your search criteria.';
+              break;
+            default:
+              this.errorMessage = 'An error occurred while fetching results.';
+          }
+        } else {
+          this.errorMessage = 'An unexpected error occurred.';
+        }
         console.error('Error fetching search results:', error);
       }
     );
@@ -101,6 +119,7 @@ export class DashboardComponent implements OnInit {
     await this.tryRefreshToken();
     if (!audioFilePath) {
       console.error('Audio file path is undefined.');
+      this.errorMessage = 'Audio file unavailable.';
       return;
     }
 
@@ -109,27 +128,28 @@ export class DashboardComponent implements OnInit {
     const headers = new HttpHeaders({
       Authorization: this.accessToken ?? 0,
     });
-    // Make a GET request to the constructed URL to download the audio file
-    this.http.get(apiUrl, { headers }).subscribe((response: any) => {
-      fetch(response.url)
-        .then((response) => response.blob())
-        .then((blob) => {
-          const url = window.URL.createObjectURL(blob);
-          // Create a temporary link element
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = fileName;
-          a.style.display = 'none';
-          document.body.appendChild(a);
 
-          a.click();
-          document.body.removeChild(a);
-          window.URL.revokeObjectURL(url);
-        })
-        .catch((error) => {
-          console.error('Error downloading audio:', error);
-        });
-    });
+    try {
+      const response = await this.http.get(apiUrl, { headers }).toPromise();
+      const blob = await fetch((response as { url: string }).url).then((r) =>
+        r.blob()
+      );
+      const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary link element
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error('Error downloading audio:', error);
+      this.errorMessage = 'An error occurred while downloading the audio file.';
+    }
   }
 
   parseJwt(token: string | undefined): any {
@@ -137,19 +157,33 @@ export class DashboardComponent implements OnInit {
       return null; // No token provided
     }
 
-    const base64Url = token.split('.')[1];
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      console.error(
+        'Invalid JWT token format. Expected 3 parts separated by "."'
+      );
+      return null;
+    }
+
+    const base64Url = parts[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
+    let jsonPayload;
+    try {
+      jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+    } catch (error) {
+      console.error('Error decoding base64 payload:', error);
+      return null;
+    }
 
     try {
       return JSON.parse(jsonPayload);
     } catch (error) {
-      console.error('Invalid JWT token');
+      console.error('Invalid JSON payload in JWT token:', error);
       return null;
     }
   }
@@ -179,6 +213,7 @@ export class DashboardComponent implements OnInit {
     const refreshToken = this.getToken('refreshToken');
     this.idToken = this.getToken('idToken');
     if (!refreshToken) {
+      this.errorMessage = 'No refresh token available.';
       return undefined; // No refresh token available
     }
     try {
@@ -201,17 +236,30 @@ export class DashboardComponent implements OnInit {
       );
 
       if (!response.ok) {
-        console.error('Could not refresh token:', await response.json());
+        const errorData = await response.json();
+        console.error('Could not refresh token:', errorData);
+        // Handle errors based on the error code from Cognito
+        switch (errorData.error) {
+          case 'InvalidRefreshToken':
+            this.errorMessage = 'Invalid refresh token. Please sign in again.';
+            break;
+          case 'TokenExpired':
+            this.errorMessage = 'Refresh token expired. Please sign in again.';
+            break;
+          default:
+            this.errorMessage = 'An error occurred while refreshing token.';
+        }
         return undefined;
       }
 
       const data = await response.json();
       console.log('Token refreshed successfully');
       this.accessToken = data.access_token;
-      this.idToken = data.id_token;
+      this.idToken = data.idToken;
       return this.accessToken;
     } catch (error) {
       console.error('Error refreshing token:', error);
+      this.errorMessage = 'An unexpected error occurred during refresh.';
       return undefined;
     }
   }
