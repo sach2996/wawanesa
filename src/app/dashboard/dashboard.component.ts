@@ -19,6 +19,7 @@ export class DashboardComponent implements OnInit {
   accessToken: any;
   idToken: any;
   baseUrl = environment.baseUrl;
+  isLoading = false;
 
   constructor(private http: HttpClient) {}
   ngOnInit(): void {
@@ -60,6 +61,7 @@ export class DashboardComponent implements OnInit {
       this.errorMessage = 'Please fill in all search fields.';
       return; // Do nothing if search is not valid
     }
+    this.isLoading = true;
     await this.tryRefreshToken();
     this.errorMessage = '';
     const apiUrlForRecords = `${this.baseUrl}/get-records`;
@@ -75,6 +77,7 @@ export class DashboardComponent implements OnInit {
 
     this.http.get<any>(apiUrlForRecords, { headers, params }).subscribe(
       (response) => {
+        this.isLoading = false;
         this.searchResults = response.data;
       },
       (error: any) => {
@@ -91,6 +94,7 @@ export class DashboardComponent implements OnInit {
     this.toDate = '';
     this.isSearchValid = false;
     this.errorMessage = '';
+    this.isLoading = false;
   }
 
   async downloadAudio(audioFilePath: string | undefined, fileName: string) {
