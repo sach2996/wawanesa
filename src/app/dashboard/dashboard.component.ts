@@ -20,6 +20,7 @@ export class DashboardComponent implements OnInit {
   idToken: any;
   baseUrl = environment.baseUrl;
   isLoading = false;
+  noRecordsFound = false;
 
   constructor(private http: HttpClient) {}
   ngOnInit(): void {
@@ -80,6 +81,10 @@ export class DashboardComponent implements OnInit {
     this.http.get<any>(apiUrlForRecords, { headers, params }).subscribe(
       (response) => {
         this.isLoading = false;
+        if (response.data.length == 0) {
+          this.noRecordsFound = true;
+        }
+        this.noRecordsFound = false;
         this.searchResults = response.data;
       },
       (error: any) => {
